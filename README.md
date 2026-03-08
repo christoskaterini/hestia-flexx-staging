@@ -4,12 +4,16 @@ A robust, terminal-based staging tool for HestiaCP and WordPress.
 
 ## Prerequisites
 
-Before running the staging tool, ensure you have:
-1. **Installed WP-CLI**: The server must have [WP-CLI](https://wp-cli.org/#installing) installed globally (so the `wp` command works).
-2. **Created a DNS Record**: Your target staging domain (e.g., `staging.yourdomain.com`) must have an `A` record pointing to your server's IP address (in Cloudflare, Hestia DNS, etc.).
-3. **Setup a Target Website in Hestia**: The staging domain must exist as a website under your HestiaCP user account.
-4. **Database Naming Convention**: When creating a database for the staging site in Hestia, ALWAYS name it clearly (e.g., `user_stagingdb`) so you never accidentally select and delete the live production database!
-5. **Full Backup**: ALWAYS take a full backup of your source AND target websites (files and DB) before running any synchronization tool!
+Before using the tool, ensure you have:
+1. **Created a DNS Record**: Your target staging domain (e.g., `staging.yourdomain.com`) must have an `A` record pointing to your server's IP address (in Cloudflare, Hestia DNS, etc.).
+2. **Setup a Target Website in Hestia**: The staging domain must exist as a website under your HestiaCP user account.
+
+## Best Practices (Optional but Recommended)
+
+- **Database Naming Convention**: When creating a database for the staging site in Hestia, name it clearly (e.g., `user_stagingdb`) so you never accidentally select and delete the live production database.
+- **Full Backup**: Take a full backup of your source AND target websites (files and DB) before running any synchronization tool.
+
+*Note: This script installs and uses [WP-CLI](https://wp-cli.org/) to handle all WordPress database operations safely.*
 
 ## Installation
 
