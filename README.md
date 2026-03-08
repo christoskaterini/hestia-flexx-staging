@@ -54,27 +54,49 @@ Staging environments and Security/Caching plugins are naturally opposed. Securit
 
 Here is the professional workflow when using `flexx-staging` alongside heavy plugins like **All-In-One WP Security (AIOS), Wordfence, LiteSpeed, or W3 Total Cache**:
 
-### 1. Pulling (Live ➔ Staging)
+### 1. PULLING: Live ➔ Staging
+
 When you run `flexx-staging` to create your staging site, the script copies all the plugin files, but **automatically deactivates the following known problem plugins** in the staging database:
 
-- **Security:** `all-in-one-wp-security-and-firewall`, `wordfence`, `ithemes-security`, `better-wp-security`, `sucuri-scanner`, `sg-security`
-- **Caching/Performance:** `w3-total-cache`, `litespeed-cache`, `wp-super-cache`, `wp-fastest-cache`, `sg-cachepress`, `wp-rocket`
-- **Redirection:** `redirection`, `simple-301-redirects`
-- **Other utilities:** `safe-svg`
+- **Security & Firewalls:**
+  `all-in-one-wp-security-and-firewall`, `wordfence`, `ithemes-security`, `better-wp-security`, `sucuri-scanner`, `sg-security`, `wp-cerber`, `shield-security`, `defender-security`
 
-**Pro Tip:** Leave them deactivated on Staging! You do not need a firewall or a caching layer on a hidden development site.
+- **Login & 2FA:**
+  `loginizer`, `limit-login-attempts-reloaded`, `two-factor-authentication`
 
-**Unknown Plugins:** If you use a heavy caching or security plugin that is *not* on the list above, you should manually deactivate it on your Live site *before* running the script, then reactivate it on Live once the sync finishes.
+- **Caching & Performance:**
+  `w3-total-cache`, `litespeed-cache`, `wp-super-cache`, `wp-fastest-cache`, `sg-cachepress`, `wp-rocket`, `autoptimize`, `wp-optimize`, `breeze`, `hummingbird-performance`
 
-### 2. Pushing Files (Staging ➔ Live)
+- **Redirection & Utilities:**
+  `redirection`, `simple-301-redirects`, `safe-svg`
+
+> **Pro Tip:** Leave them deactivated on Staging! You do not need a firewall or a caching layer on a hidden development site.
+
+> **Unknown Plugins:** If you use a heavy caching or security plugin that is *not* on the list above, you should manually deactivate it on your Live site *before* running the script, then reactivate it on Live once the sync finishes.
+
+<br>
+
+### 2. PUSHING FILES: Staging ➔ Live (Option 1)
+
 If you made CSS or theme changes and want to run `flexx-staging` (Option 1 - Files Only) to push back to Live:
-- Because the script only copies files, and your Live site's database remains untouched, your Live site's security and caching plugins will remain fully active and functional just as they always were.
-- **Pro Tip:** After pushing files to Live, log into your Live WordPress dashboard and click "Clear Cache" in your caching plugin so your new files load instantly for users.
 
-### 3. Pushing Databases (Staging ➔ Live)
-If you are doing a full Database push (Option 2 or 3) from Staging back to Live (only recommended for non-eCommerce/static sites):
-- Because the plugins were deactivated on Staging, pushing the database will make the Live site boot up with AIOS/Wordfence/Caches deactivated.
-- **Pro Tip:** The instant the sync finishes, log into your Live WordPress dashboard and **Reactivate your security and cache plugins.**
+1. The script only copies files; your Live site's database remains completely untouched.
+2. Your Live site's security and caching plugins will remain fully active and functional, exactly as they always were.
+3. **CRITICAL POST-STEP:** After pushing files to Live, log into your Live WordPress dashboard and click **"Clear Cache"** in your caching plugin so your new files load instantly for users.
+
+<br>
+
+### 3. PUSHING DATABASES: Staging ➔ Live (Option 2 or 3)
+
+*(Only recommended for static/non-eCommerce sites)*
+
+If you are doing a full Database push from Staging back to Live:
+
+1. Because the plugins were deactivated on Staging, pushing the database will make the Live site boot up with AIOS, Wordfence, and all Caches **DEACTIVATED**.
+2. **THIS IS INTENTIONAL:** It prevents plugins from breaking your Live site by aggressively writing Staging rules to your Live `.htaccess`.
+3. **CRITICAL POST-STEP:** The instant the sync finishes, you MUST log into your Live WordPress dashboard and click **Activate** on your required security and cache plugins.
+
+*(Note: For security plugins that use custom login URLs, you will temporarily need to log in via `/wp-admin` until you reactivate the plugin.)*
 
 ## Uninstallation
 
@@ -84,3 +106,12 @@ To remove the `flexx-staging` tool and `wp-cli` from your server, run this comma
 rm /usr/local/bin/flexx-staging
 rm /usr/local/bin/wp
 ```
+
+---
+
+## Contributing & Support
+
+If you encounter any issues or bugs while using `flexx-staging`, please **open an issue on GitHub**.
+
+**Help us expand the safe-list!**
+If you use a caching or security plugin that caused staging to break or lock you out, please submit an issue on GitHub suggesting it. We routinely update the `flexx-staging.sh` code to automatically deactivate problem plugins, and your feedback helps make this tool safer for everyone!

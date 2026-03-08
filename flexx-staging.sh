@@ -134,8 +134,10 @@ if [ "$SYNC_TYPE" == "2" ] || [ "$SYNC_TYPE" == "3" ]; then
 
     echo "--> Deactivating Security & Caching Plugins on Target..."
     # Deactivate plugins that cause severe redirect/lockout issues during staging
-    run_wp plugin deactivate all-in-one-wp-security-and-firewall wordfence ithemes-security better-wp-security sucuri-scanner sg-security \
-        w3-total-cache litespeed-cache wp-super-cache wp-fastest-cache sg-cachepress wp-rocket \
+    run_wp plugin deactivate \
+        all-in-one-wp-security-and-firewall wordfence ithemes-security better-wp-security sucuri-scanner sg-security wp-cerber shield-security defender-security \
+        loginizer limit-login-attempts-reloaded two-factor-authentication \
+        w3-total-cache litespeed-cache wp-super-cache wp-fastest-cache sg-cachepress wp-rocket autoptimize wp-optimize breeze hummingbird-performance \
         redirection simple-301-redirects safe-svg \
         --path="$TARGET_PATH" --quiet 2>/dev/null || true
 
