@@ -56,8 +56,13 @@ echo ""
 
 # 3. Process Files if selected (1 or 3)
 if [ "$SYNC_TYPE" == "1" ] || [ "$SYNC_TYPE" == "3" ]; then
-    echo "--> Copying Files (ignoring wp-config.php)..."
-    rsync -av --exclude 'wp-config.php' "$SOURCE_PATH/" "$TARGET_PATH/"
+    echo "--> Copying Files (ignoring wp-config.php and .htaccess)..."
+
+    rsync -av \
+      --exclude 'wp-config.php' \
+      --exclude '.htaccess' \
+      "$SOURCE_PATH/" "$TARGET_PATH/"
+
     echo "--> Fixing permissions..."
     # Since we run as the user, files are already owned by the user,
     # but we ensure directories are 755 and files are 644 just to be clean.
@@ -85,12 +90,14 @@ if [ "$SYNC_TYPE" == "2" ] || [ "$SYNC_TYPE" == "3" ]; then
     run_wp db export "$SOURCE_PATH/sync_dump.sql" --path="$SOURCE_PATH" --quiet
     mv "$SOURCE_PATH/sync_dump.sql" "$TARGET_PATH/sync_dump.sql"
 
+    echo "--> Clearing existing tables from Target Database..."
+    run_wp db reset --yes --path="$TARGET_PATH" --quiet
+
     echo "--> Importing Database into Target..."
     run_wp db import "$TARGET_PATH/sync_dump.sql" --path="$TARGET_PATH" --quiet
     rm "$TARGET_PATH/sync_dump.sql"
 
     echo "--> Updating URLs in Target Database..."
-    OLD_URL="https://$SOURCE_DOM"
     NEW_URL="https://$TARGET_DOM"
 
     # Sync the Database Prefix
@@ -103,9 +110,32 @@ if [ "$SYNC_TYPE" == "2" ] || [ "$SYNC_TYPE" == "3" ]; then
         run_wp config set table_prefix "$SOURCE_PREFIX" --path="$TARGET_PATH" --quiet
     fi
 
-    # We replace both http and https to be clean
+    echo "--> Running Search and Replace..."
+    # Get the exact live URL dynamically to ensure we catch 'www.' or HTTP variations
+    EXACT_OLD_URL=$(run_wp option get siteurl --path="$SOURCE_PATH" --quiet)
+    if [ -n "$EXACT_OLD_URL" ]; then
+        run_wp search-replace "$EXACT_OLD_URL" "$NEW_URL" --skip-columns=guid --path="$TARGET_PATH" --quiet
+    fi
+
+    # Blindly replace standard variations just in case hardcoded links exist
+    run_wp search-replace "https://$SOURCE_DOM" "$NEW_URL" --skip-columns=guid --path="$TARGET_PATH" --quiet
     run_wp search-replace "http://$SOURCE_DOM" "$NEW_URL" --skip-columns=guid --path="$TARGET_PATH" --quiet
-    run_wp search-replace "$OLD_URL" "$NEW_URL" --skip-columns=guid --path="$TARGET_PATH" --quiet
+    run_wp search-replace "https://www.$SOURCE_DOM" "$NEW_URL" --skip-columns=guid --path="$TARGET_PATH" --quiet
+    run_wp search-replace "http://www.$SOURCE_DOM" "$NEW_URL" --skip-columns=guid --path="$TARGET_PATH" --quiet
+
+    # Explicitly force the core URL options to guarantee the site loads
+    run_wp option update home "$NEW_URL" --path="$TARGET_PATH" --quiet
+    run_wp option update siteurl "$NEW_URL" --path="$TARGET_PATH" --quiet
+
+    echo "--> Deactivating Security & Caching Plugins on Target..."
+    # Deactivate plugins that cause severe redirect/lockout issues during staging
+    run_wp plugin deactivate all-in-one-wp-security-and-firewall wordfence ithemes-security better-wp-security sucuri-scanner sg-security \
+        w3-total-cache litespeed-cache wp-super-cache wp-fastest-cache sg-cachepress wp-rocket \
+        redirection simple-301-redirects safe-svg \
+        --path="$TARGET_PATH" --quiet || true
+
+    echo "--> Flushing Permalinks (Rewrites)..."
+    run_wp rewrite flush --hard --path="$TARGET_PATH" --quiet
 
     echo "--> Flushing Object Cache (if any)..."
     run_wp cache flush --path="$TARGET_PATH" --quiet
