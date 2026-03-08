@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e # Exit immediately if a command exits with a non-zero status
 
 # Prevent root from running it accidentally
 if [ "$EUID" -eq 0 ]; then
@@ -32,6 +33,8 @@ fi
 
 echo ""
 echo "WARNING: You are about to overwrite data on --> $TARGET_DOM"
+echo "SAFETY CHECK: Ensure your target database was named explicitly as a staging DB"
+echo "              (e.g., user_stagingdb) to avoid deleting production work."
 read -r -p "Are you 100% sure? (type 'yes' to continue): " CONFIRM
 if [ "$CONFIRM" != "yes" ]; then
     echo "Aborted."
@@ -64,24 +67,38 @@ fi
 
 # 4. Process Database if selected (2 or 3)
 if [ "$SYNC_TYPE" == "2" ] || [ "$SYNC_TYPE" == "3" ]; then
+    # Verify WP-CLI is installed
+    if ! command -v wp &> /dev/null; then
+        echo "ERROR: WP-CLI ('wp' command) was not found!"
+        echo "Please install WP-CLI globally to sync the database."
+        exit 1
+    fi
+
+    # Hestia/CloudPanel often disable proc_open which WP-CLI uses.
+    # To bypass this for our script, we run wp via explicitly enabling proc_open using php CLI.
+    # We define a helper function to run wp commands bypassing the disable_functions directive.
+    run_wp() {
+        php -d disable_functions="" /usr/local/bin/wp "$@"
+    }
+
     echo "--> Exporting Database from Source..."
-    wp db export "$SOURCE_PATH/sync_dump.sql" --path="$SOURCE_PATH" --quiet
+    run_wp db export "$SOURCE_PATH/sync_dump.sql" --path="$SOURCE_PATH" --quiet
     mv "$SOURCE_PATH/sync_dump.sql" "$TARGET_PATH/sync_dump.sql"
 
     echo "--> Importing Database into Target..."
-    wp db import "$TARGET_PATH/sync_dump.sql" --path="$TARGET_PATH" --quiet
+    run_wp db import "$TARGET_PATH/sync_dump.sql" --path="$TARGET_PATH" --quiet
     rm "$TARGET_PATH/sync_dump.sql"
 
     echo "--> Updating URLs in Target Database..."
     OLD_URL="https://$SOURCE_DOM"
     NEW_URL="https://$TARGET_DOM"
 
-    # We replace both http and https to be perfectly clean
-    wp search-replace "http://$SOURCE_DOM" "$NEW_URL" --skip-columns=guid --path="$TARGET_PATH" --quiet
-    wp search-replace "$OLD_URL" "$NEW_URL" --skip-columns=guid --path="$TARGET_PATH" --quiet
+    # We replace both http and https to be clean
+    run_wp search-replace "http://$SOURCE_DOM" "$NEW_URL" --skip-columns=guid --path="$TARGET_PATH" --quiet
+    run_wp search-replace "$OLD_URL" "$NEW_URL" --skip-columns=guid --path="$TARGET_PATH" --quiet
 
     echo "--> Flushing Object Cache (if any)..."
-    wp cache flush --path="$TARGET_PATH" --quiet
+    run_wp cache flush --path="$TARGET_PATH" --quiet
 fi
 
 # Invalid selection catch
