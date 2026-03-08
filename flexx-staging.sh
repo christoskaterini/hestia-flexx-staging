@@ -129,15 +129,15 @@ if [ "$SYNC_TYPE" == "2" ] || [ "$SYNC_TYPE" == "3" ]; then
     run_wp search-replace "http://www.$SOURCE_DOM" "$NEW_URL" --skip-columns=guid --path="$TARGET_PATH" --quiet
 
     # Explicitly force the core URL options to guarantee the site loads
-    run_wp option update home "$NEW_URL" --path="$TARGET_PATH" --quiet || true
-    run_wp option update siteurl "$NEW_URL" --path="$TARGET_PATH" --quiet || true
+    run_wp option update home "$NEW_URL" --path="$TARGET_PATH" --quiet 2>/dev/null || true
+    run_wp option update siteurl "$NEW_URL" --path="$TARGET_PATH" --quiet 2>/dev/null || true
 
     echo "--> Deactivating Security & Caching Plugins on Target..."
     # Deactivate plugins that cause severe redirect/lockout issues during staging
     run_wp plugin deactivate all-in-one-wp-security-and-firewall wordfence ithemes-security better-wp-security sucuri-scanner sg-security \
         w3-total-cache litespeed-cache wp-super-cache wp-fastest-cache sg-cachepress wp-rocket \
         redirection simple-301-redirects safe-svg \
-        --path="$TARGET_PATH" --quiet || true
+        --path="$TARGET_PATH" --quiet 2>/dev/null || true
 
     echo "--> Flushing Permalinks (Rewrites)..."
     run_wp rewrite flush --hard --path="$TARGET_PATH" --quiet
