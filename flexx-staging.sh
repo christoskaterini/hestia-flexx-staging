@@ -93,6 +93,16 @@ if [ "$SYNC_TYPE" == "2" ] || [ "$SYNC_TYPE" == "3" ]; then
     OLD_URL="https://$SOURCE_DOM"
     NEW_URL="https://$TARGET_DOM"
 
+    # Sync the Database Prefix
+    echo "--> Syncing Database Table Prefix..."
+    SOURCE_PREFIX=$(run_wp config get table_prefix --path="$SOURCE_PATH" --quiet)
+    TARGET_PREFIX=$(run_wp config get table_prefix --path="$TARGET_PATH" --quiet)
+
+    if [ "$SOURCE_PREFIX" != "$TARGET_PREFIX" ] && [ -n "$SOURCE_PREFIX" ]; then
+        # We explicitly set it in the target's wp-config since we omitted it in rsync
+        run_wp config set table_prefix "$SOURCE_PREFIX" --path="$TARGET_PATH" --quiet
+    fi
+
     # We replace both http and https to be clean
     run_wp search-replace "http://$SOURCE_DOM" "$NEW_URL" --skip-columns=guid --path="$TARGET_PATH" --quiet
     run_wp search-replace "$OLD_URL" "$NEW_URL" --skip-columns=guid --path="$TARGET_PATH" --quiet
