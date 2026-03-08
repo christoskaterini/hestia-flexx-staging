@@ -110,6 +110,11 @@ if [ "$SYNC_TYPE" == "2" ] || [ "$SYNC_TYPE" == "3" ]; then
         run_wp config set table_prefix "$SOURCE_PREFIX" --path="$TARGET_PATH" --quiet
     fi
 
+    # We MUST force a unique cache salt for the staging site to isolate it from Live RAM.
+    echo "--> Isolating Object Cache Keys..."
+    run_wp config set WP_CACHE_KEY_SALT "${TARGET_DOM}_" --path="$TARGET_PATH" --type=constant --quiet || true
+    run_wp config set WP_REDIS_PREFIX "${TARGET_DOM}_" --path="$TARGET_PATH" --type=constant --quiet || true
+
     echo "--> Running Search and Replace..."
     # Get the exact live URL dynamically to ensure we catch 'www.' or HTTP variations
     EXACT_OLD_URL=$(run_wp option get siteurl --path="$SOURCE_PATH" --quiet)
